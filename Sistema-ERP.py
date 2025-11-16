@@ -57,6 +57,41 @@ def alerta_estoque(conn, cursor): #def para criar um alerta para o usuário caso
         conn.commit()
         return
 
+def visualizar_estoque(conn, cursor): #def para visualizar itens cadastrados no estoque
+    verify_estoque = verificar_estoque(conn, cursor)
+    if verify_estoque != 0:
+        cursor.execute("""SELECT * FROM estoque WHERE quantidade >= 5""")
+        for produto in cursor:
+            print(f"ID {produto['id']} - Nome: {produto['nome']} - Categoria: {produto['categoria']} - Valor: {produto['valor_unit']} - Quantidade: {produto['quantidade']}")
+            print("="*100)
+        cursor.execute("""SELECT COUNT(*) FROM estoque WHERE quantidade < 5""")
+        linhas_compact = cursor.fetchone()
+        resultado = linhas_compact[0]
+        if resultado != 0:
+            cursor.execute("""SELECT * FROM estoque WHERE quantidade < 5""")
+            for produto in cursor:
+                print(f"**ESTOQUE BAIXO**: ID {produto['id']} - Nome: {produto['nome']} - Categoria: {produto['categoria']} - Valor: {produto['valor_unit']} - Quantidade: {produto['quantidade']}")
+                print("="*100)
+            print("\n")
+        return
+    else:
+        print("O estoque está vazio!")
+        return
+
+#def para buscar itens especificos pelo nome ou pelo id
+def buscar_item(conn, cursor, buscar):
+    cursor.execute("""SELECT * FROM estoque WHERE nome = ? OR id = ?""", (buscar, buscar))
+    item_encontrado = cursor.fetchone()
+    if item_encontrado is None:
+        print("Nenhum produto encontrado!")
+        conn.commit()
+        return None
+    else:
+        print("Produto encontrado!")
+        print(f"ID {item_encontrado['id']} - Nome: {item_encontrado['nome']} - Categoria: {item_encontrado['categoria']} - Valor: {item_encontrado['valor_unit']} - Quantidade: {item_encontrado['quantidade']} ")
+        print("="*100)
+        conn.commit()
+        return item_encontrado
 
 #Menu Principal do Sistema
 print("--          Gerenciamento de Estoques          --")
@@ -72,7 +107,7 @@ while True:
     alerta_estoque(conn, cursor)
     while True:
         try:
-            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Sair do sistema\n"))
+            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Visualizar Estoque\n3 - Buscar Item\n4 - Sair do sistema\n"))
             break
         except ValueError:
             print("Digite uma opção válida!")
@@ -92,10 +127,30 @@ while True:
                 print(f"Ocorreu um erro inesperado {e}")
                 print("Tente Novamente.")
                 continue
-        cadastrar_item(conn, cursor, nome, categoria,valor_unit, quantidade)
+        cadastrar_item(conn, cursor, nome, categoria, valor_unit, quantidade)
         print("\n")
-        
+    
     elif verify == 2:
+        visualizar_estoque(conn, cursor)
+
+    elif verify == 3:
+        verify_estoque = verificar_estoque(conn, cursor)
+        if verify_estoque != 0:
+            option = int(input("Deseja buscar o produto por\n1 - Nome\n2 - ID\n"))
+            if option == 1:
+                buscar = input("Digite o nome do produto que deseja buscar: ")
+                buscar_item(conn, cursor, buscar)
+                print("\n")
+            elif option == 2:
+                buscar= int(input("Digite o ID do produto que deseja buscar: "))
+                buscar_item(conn, cursor, buscar)
+                print("\n")
+            else:
+                print("Opção inválida!")
+        else:
+            print("O banco de dados está vazio, adicione algum item para fazer operações.\n")
+
+    elif verify == 4:
         print("Encerrando Operação...\nObrigado por usar nossos serviços.")
         conn.close()
         break
