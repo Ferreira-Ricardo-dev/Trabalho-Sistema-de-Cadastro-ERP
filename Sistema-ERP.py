@@ -1,6 +1,9 @@
-#Tentando implementar Banco de Dados e biblioteca para registrar datas
+#Tentando importar Banco de Dados e biblioteca para registrar datas
 import sqlite3
 from datetime import datetime
+#Importando bibliotecas para fazer gráficos
+import pandas as pd
+import matplotlib.pyplot as plt
 
 def iniciar(conn, cursor):
     #Aqui vou inciar/verificar as tabelas que usarei no sistema
@@ -185,6 +188,58 @@ def buscar_registros(conn, cursor, buscar):
         conn.commit()
         return
 
+def graficos(conn):
+    #Para fazer os gráficos que vou usar, irei usar a biblioteca pandas para acessar os dados no estoque e transformar em dataframes e após isso usar matplotlib para fazer os gráficos
+    while True:
+        while True:
+            try:
+                option_graficos = int(input("Qual gráfico deseja visualizar:\n1 - Visualizar valor em estoque por categoria\n2 - Visualizar produtos e quantidades no estoque\n3 - Visualizar distribuição de valores unitários dos produtos em estoque\n"))
+                break
+            except ValueError:
+                print("Digite uma opção válida!")
+                continue
+        if option_graficos == 1:
+            print("\nGerando gráfico de valor por categoria...")
+            query = "SELECT categoria, SUM(valor_unit * quantidade) as valor_total FROM estoque GROUP BY categoria"
+            dataframe = pd.read_sql_query(query, conn)
+            valor_geral_total = dataframe['valor_total'].sum()
+            texto_total = f"Total:\nR$ {valor_geral_total:,.2f}"
+            dataframe.plot.pie(y='valor_total', labels=dataframe['categoria'])
+            plt.title("Gráfico de Valor por Categoria")
+            plt.text(0, 0, texto_total, ha='center', va='center')
+            plt.ylabel('')
+            plt.show()
+            print("\n")
+            break
+        elif option_graficos == 2:
+            print("\nGerando gráfico de produtos e quantidades no estoque...")
+            query = "SELECT nome, quantidade FROM estoque GROUP BY nome"
+            dataframe = pd.read_sql_query(query, conn)
+            dataframe.plot.bar(x='nome', y='quantidade', figsize=(10, 6), legend=False)
+            plt.title("Gráfico de Produtos e Quantidades")
+            plt.xlabel("Produto", fontsize=12)
+            plt.ylabel("Quantidade em Estoque", fontsize=12)
+            plt.xticks(rotation=0, ha='right')
+            plt.tight_layout()
+            plt.show()
+            print("\n")
+            break
+        elif option_graficos == 3:
+            print("\nGerando gráfico de dispersão para correlação entre quantidade e valor total por produto...")
+            query = "SELECT nome, SUM(quantidade) as total_quantidade, SUM(valor_unit * quantidade) as valor_total FROM estoque GROUP BY nome"
+            dataframe = pd.read_sql_query(query, conn)
+            dataframe.plot.scatter(x='total_quantidade', y='valor_total', figsize=(10, 6), s=100, alpha=0.7)
+            plt.title("Correlação entre Quantidade e Valor Total por Produto", fontsize=16)
+            plt.xlabel("Quantidade Total em Estoque", fontsize=12)
+            plt.ylabel("Valor Total Acumulado (R$)", fontsize=12)
+            plt.grid(True, linestyle='--', alpha=0.5)
+            plt.show()
+            print("\n")
+            break
+        else:
+            print("Opção inválida. Escolha uma das opções válidas (1 a 3).")
+            continue
+
 #Menu Principal do Sistema
 print("--          Gerenciamento de Estoques          --")
 print("="*50)
@@ -199,7 +254,7 @@ while True:
     alerta_estoque(conn, cursor)
     while True:
         try:
-            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Visualizar Estoque\n3 - Buscar Item\n4 - Movimentar Estoque\n5 - Excluir item\n6 - Movimentações de um Produto\n7 - Sair do sistema\n"))
+            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Visualizar Estoque\n3 - Buscar Item\n4 - Movimentar Estoque\n5 - Excluir item\n6 - Movimentações de um Produto\n7 - Gráficos e Relatórios\n8 - Sair do sistema\n"))
             break
         except ValueError:
             print("Digite uma opção válida!")
@@ -290,9 +345,16 @@ while True:
             print("O banco de dados está vazio, adicione algum item para fazer operações.\n")
 
     elif verify == 7:
+        verify_estoque = verificar_estoque(conn, cursor)
+        if verify_estoque != 0:        
+            graficos(conn)
+        else:
+            print("O banco de dados está vazio, adicione algum item para fazer operações.\n")
+
+    elif verify == 8:
         print("Encerrando Operação...\nObrigado por usar nossos serviços.")
         conn.close()
         break
 
     else:
-        print("Opção inválida. Escolha uma das opções válidas (1 a 5).")
+        print("Opção inválida. Escolha uma das opções válidas (1 a 8).")
