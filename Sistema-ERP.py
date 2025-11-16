@@ -144,6 +144,30 @@ def movimentar_item(conn, cursor, buscar, opcao):#def para movimentar itens pelo
         print(f"Movimentação de {quantidade_movimentada} unidades realizada com sucesso. Novo estoque: {quantidade_atualizada}")
         return
 
+def excluir_item(conn, cursor, buscar):
+    item_encontrado = buscar_item(conn, cursor, buscar)
+    nome = item_encontrado['nome']
+    print(f"Atenção!!! caso o item {nome} for excluido todos os registros envolvendo o item serão perdidos!")
+    while True:
+        try:
+            editor = int(input("Continuar exclusão:\n1 - SIM\n2 - NÃO\n"))
+            break
+        except ValueError:
+            print("Você deve digitar uma das opções!")
+            continue
+        except editor != 1 and editor != 2:
+            print("Opção inválida! Tente novamente.")
+            continue
+    if editor == 1:
+        cursor.execute("DELETE FROM estoque WHERE nome = ?", (nome, ))
+        print(f"Produto '{nome}' excluido com sucesso!")
+        conn.commit()
+        return
+    elif editor == 2:
+        print(f"Exclusão de {nome} cancelada")
+        return
+    
+
 #Menu Principal do Sistema
 print("--          Gerenciamento de Estoques          --")
 print("="*50)
@@ -158,7 +182,7 @@ while True:
     alerta_estoque(conn, cursor)
     while True:
         try:
-            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Visualizar Estoque\n3 - Buscar Item\n4 - Movimentar Estoque\n5 - Sair do sistema\n"))
+            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Visualizar Estoque\n3 - Buscar Item\n4 - Movimentar Estoque\n5 - Excluir item\n6 - Sair do sistema\n"))
             break
         except ValueError:
             print("Digite uma opção válida!")
@@ -219,6 +243,21 @@ while True:
             print("O banco de dados está vazio, adicione algum item para fazer operações.\n")
 
     elif verify == 5:
+        verify_estoque = verificar_estoque(conn, cursor)
+        if verify_estoque != 0:        
+            option = int(input("Deseja buscar o produto por\n1 - Nome\n2 - ID\n"))
+            if option == 1:
+                buscar = input("Digite o nome do produto que deseja buscar: ")
+                excluir_item(conn, cursor, buscar)
+                print("\n")
+            elif option == 2:
+                buscar= int(input("Digite o ID do produto que deseja buscar: "))
+                excluir_item(conn, cursor, buscar)
+                print("\n")
+        else:
+            print("O banco de dados está vazio, adicione algum item para fazer operações.\n")
+
+    elif verify == 6:
         print("Encerrando Operação...\nObrigado por usar nossos serviços.")
         conn.close()
         break
