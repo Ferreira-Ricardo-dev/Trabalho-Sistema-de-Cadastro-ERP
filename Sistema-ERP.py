@@ -93,6 +93,57 @@ def buscar_item(conn, cursor, buscar):
         conn.commit()
         return item_encontrado
 
+def movimentar_item(conn, cursor, buscar, opcao):#def para movimentar itens pelo estoque
+    item_encontrado = buscar_item(conn, cursor, buscar)
+    if item_encontrado is None:
+        print("Nenhum item encontrado!")
+        return
+    else:
+        nome = item_encontrado['nome']
+        id = item_encontrado['id']
+        quantidade_inicial = int(item_encontrado['quantidade'])
+        quantidade_movimentada = 0
+        tipo_movimento = ""
+        data_now = datetime.now()
+        datahora = data_now.strftime("%d/%m/%Y, %H:%M:%S")
+        if opcao == 1:
+            while True:
+                try:
+                    quantidade_movimentada = int(input(f"Digite quantas unidades serão adicionadas à '{nome}': "))
+                    break
+                except TypeError:
+                    print("Entrada inválida! Tente novamente.")
+                    continue
+            cursor.execute("""UPDATE estoque SET quantidade = quantidade + ? WHERE nome = ?""", (quantidade_movimentada, nome))
+            conn.commit()
+            tipo_movimento = "Entrada"
+        elif opcao == 2:
+            while True:
+                try:
+                    quantidade_movimentada = int(input(f"Digite quantas unidades serão retiradas de '{nome}': "))
+                    break
+                except TypeError:
+                    print("Entrada inválida! Tente novamente.")
+                    continue
+                
+            if quantidade_movimentada > quantidade_inicial:
+                print("Não é possível realizar essa operação!")
+                print(f"Quantidade no estoque: {quantidade_inicial}\nRetirada Requisitada: {quantidade_movimentada}")
+                return
+            else:
+                cursor.execute("""UPDATE estoque SET quantidade = quantidade - ? WHERE nome = ?""", (quantidade_movimentada, nome))
+                tipo_movimento = "Saída"
+                conn.commit()
+        cursor.execute("SELECT quantidade FROM estoque WHERE nome = ?", (nome, ))
+        quantidade_atualizada_list = cursor.fetchone()
+        quantidade_atualizada = quantidade_atualizada_list[0]
+        insert = ("""INSERT INTO movimentos (item_id, tipo, datahora, quantidade_movimentada, quantidade_final) 
+        VALUES (?, ?, ?, ?, ?)""")
+        cursor.execute(insert, (id, tipo_movimento, datahora, quantidade_movimentada, quantidade_atualizada))
+        conn.commit()
+        print(f"Movimentação de {quantidade_movimentada} unidades realizada com sucesso. Novo estoque: {quantidade_atualizada}")
+        return
+
 #Menu Principal do Sistema
 print("--          Gerenciamento de Estoques          --")
 print("="*50)
@@ -107,7 +158,7 @@ while True:
     alerta_estoque(conn, cursor)
     while True:
         try:
-            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Visualizar Estoque\n3 - Buscar Item\n4 - Sair do sistema\n"))
+            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Visualizar Estoque\n3 - Buscar Item\n4 - Movimentar Estoque\n5 - Sair do sistema\n"))
             break
         except ValueError:
             print("Digite uma opção válida!")
@@ -142,7 +193,7 @@ while True:
                 buscar_item(conn, cursor, buscar)
                 print("\n")
             elif option == 2:
-                buscar= int(input("Digite o ID do produto que deseja buscar: "))
+                buscar = int(input("Digite o ID do produto que deseja buscar: "))
                 buscar_item(conn, cursor, buscar)
                 print("\n")
             else:
@@ -151,9 +202,26 @@ while True:
             print("O banco de dados está vazio, adicione algum item para fazer operações.\n")
 
     elif verify == 4:
+        verify_estoque = verificar_estoque(conn, cursor)
+        if verify_estoque != 0:        
+            option = int(input("Deseja buscar o produto por\n1 - Nome\n2 - ID\n"))
+            if option == 1:
+                buscar = input("Digite o nome do produto que deseja buscar: ")
+                opcao = int(input("Digite qual operação deseja fazer:\n1 - Entrada\n2 - Saída\n"))
+                movimentar_item(conn, cursor, buscar, opcao)
+                print("\n")
+            elif option == 2:
+                buscar= int(input("Digite o ID do produto que deseja buscar: "))
+                opcao = int(input("Digite qual operação deseja fazer:\n1 - Entrada\n2 - Saída\n"))
+                movimentar_item(conn, cursor, buscar, opcao)
+                print("\n")
+        else:
+            print("O banco de dados está vazio, adicione algum item para fazer operações.\n")
+
+    elif verify == 5:
         print("Encerrando Operação...\nObrigado por usar nossos serviços.")
         conn.close()
         break
 
     else:
-        print("Opção inválida. Escolha uma das opções válidas (1 e 2).")
+        print("Opção inválida. Escolha uma das opções válidas (1 a 5).")
