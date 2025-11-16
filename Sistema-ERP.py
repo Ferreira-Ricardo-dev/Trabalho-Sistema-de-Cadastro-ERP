@@ -167,6 +167,23 @@ def excluir_item(conn, cursor, buscar):
         print(f"Exclusão de {nome} cancelada")
         return
     
+def buscar_registros(conn, cursor, buscar):
+    item_encontrado = buscar_item(conn, cursor, buscar)
+    if item_encontrado is None:
+        return
+    else:
+        cursor.execute("SELECT id FROM estoque WHERE nome = ?", (item_encontrado['nome'], ))
+        id_mov = cursor.fetchone()
+        id_mov_d = id_mov[0]
+        cursor.execute("SELECT * FROM movimentos WHERE item_id = ?", (id_mov_d, ))
+        print("\n")
+        print("=== Movimentações ===")
+        print("\n")
+        for transacao in cursor:
+            print(f"Tipo: {transacao['tipo']} - Data: {transacao['datahora']} - Quantidade Movimentada: {transacao['quantidade_movimentada']} - Quantidade Final: {transacao['quantidade_final']}")
+            print("="*100)
+        conn.commit()
+        return
 
 #Menu Principal do Sistema
 print("--          Gerenciamento de Estoques          --")
@@ -182,7 +199,7 @@ while True:
     alerta_estoque(conn, cursor)
     while True:
         try:
-            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Visualizar Estoque\n3 - Buscar Item\n4 - Movimentar Estoque\n5 - Excluir item\n6 - Sair do sistema\n"))
+            verify = int(input("Digite qual operação você deseja fazer:\n1 - Cadastrar Produto\n2 - Visualizar Estoque\n3 - Buscar Item\n4 - Movimentar Estoque\n5 - Excluir item\n6 - Movimentações de um Produto\n7 - Sair do sistema\n"))
             break
         except ValueError:
             print("Digite uma opção válida!")
@@ -258,6 +275,21 @@ while True:
             print("O banco de dados está vazio, adicione algum item para fazer operações.\n")
 
     elif verify == 6:
+        verify_estoque = verificar_estoque(conn, cursor)
+        if verify_estoque != 0:        
+            option = int(input("Deseja buscar o produto por\n1 - Nome\n2 - ID\n"))
+            if option == 1:
+                buscar = input("Digite o nome do produto que deseja buscar: ")
+                buscar_registros(conn, cursor, buscar)
+                print("\n")
+            elif option == 2:
+                buscar= int(input("Digite o ID do produto que deseja buscar: "))
+                buscar_registros(conn, cursor, buscar)
+                print("\n")
+        else:
+            print("O banco de dados está vazio, adicione algum item para fazer operações.\n")
+
+    elif verify == 7:
         print("Encerrando Operação...\nObrigado por usar nossos serviços.")
         conn.close()
         break
