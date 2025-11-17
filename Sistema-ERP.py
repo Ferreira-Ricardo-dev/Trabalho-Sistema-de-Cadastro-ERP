@@ -63,15 +63,15 @@ def alerta_estoque(conn, cursor): #def para criar um alerta para o usuário caso
 def visualizar_estoque(conn, cursor): #def para visualizar itens cadastrados no estoque
     verify_estoque = verificar_estoque(conn, cursor)
     if verify_estoque != 0:
-        cursor.execute("""SELECT * FROM estoque WHERE quantidade >= 5""")
+        cursor.execute("""SELECT * FROM estoque WHERE quantidade > 5""")
         for produto in cursor:
             print(f"ID {produto['id']} - Nome: {produto['nome']} - Categoria: {produto['categoria']} - Valor: {produto['valor_unit']} - Quantidade: {produto['quantidade']}")
             print("="*100)
-        cursor.execute("""SELECT COUNT(*) FROM estoque WHERE quantidade < 5""")
+        cursor.execute("""SELECT COUNT(*) FROM estoque WHERE quantidade <= 5""")
         linhas_compact = cursor.fetchone()
         resultado = linhas_compact[0]
         if resultado != 0:
-            cursor.execute("""SELECT * FROM estoque WHERE quantidade < 5""")
+            cursor.execute("""SELECT * FROM estoque WHERE quantidade <= 5""")
             for produto in cursor:
                 print(f"**ESTOQUE BAIXO**: ID {produto['id']} - Nome: {produto['nome']} - Categoria: {produto['categoria']} - Valor: {produto['valor_unit']} - Quantidade: {produto['quantidade']}")
                 print("="*100)
@@ -261,7 +261,32 @@ while True:
             continue
     if verify == 1:
         nome = input("Digite o nome do produto: ")
-        categoria = input("Digite a categoria do produto(Limpeza, Alimentos, etc): ")
+        while True:
+            while True:
+                try:
+                    escolher_categoria = int(input("Digite a categoria do produto:\n1 - Alimentos/Bebidas\n2 - Higiene/Limpeza\n3 - Vestuário/Têxteis\n4 - Material de Escritório/Escolar\n5 - Ferramentas/Construção\n"))
+                    break
+                except ValueError:
+                    print("Digite uma opção válida!")
+                    continue
+            if escolher_categoria == 1:
+                categoria = "Alimentos/Bebidas"
+                break
+            elif escolher_categoria == 2:
+                categoria = "Higiene/Limpeza"
+                break
+            elif escolher_categoria == 3:
+                categoria = "Vestuário/Têxteis"
+                break
+            elif escolher_categoria == 4:
+                categoria = "Material de Escritório/Escolar"
+                break
+            elif escolher_categoria == 5:
+                categoria = "Ferramentos/Construção"
+                break
+            else:
+                print("Opção inválida. Escolha uma das opções válidas (1 a 5).")
+                continue
         while True:
             try:
                 valor_unit = float(input("Digite o valor unitário dos produtos: "))
@@ -358,3 +383,4 @@ while True:
 
     else:
         print("Opção inválida. Escolha uma das opções válidas (1 a 8).")
+        continue
